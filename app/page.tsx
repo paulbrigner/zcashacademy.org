@@ -1,103 +1,167 @@
-import Image from "next/image";
+'use client';
+
+import { usePrivy, useWallets, useFundWallet } from '@privy-io/react-auth';
+import { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
+import { WalletService } from '@unlock-protocol/unlock-js';
+import { base } from 'viem/chains';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { login, logout, authenticated, user, ready } = usePrivy();
+  const { wallets } = useWallets();
+  const { fundWallet } = useFundWallet();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [hasMembership, setHasMembership] = useState(false);
+  const [loadingMembership, setLoadingMembership] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isFunding, setIsFunding] = useState(false);
+
+  const LOCK_ADDRESS = '0xed16cd934780a48697c2fd89f1b13ad15f0b64e1';
+  const NETWORK_ID = 8453;
+  const BASE_RPC_URL = 'https://mainnet.base.org';
+
+  const checkMembership = async () => {
+    if (!ready || !authenticated || wallets.length === 0) return;
+    setLoadingMembership(true);
+    try {
+      const rpcProvider = new ethers.JsonRpcProvider(BASE_RPC_URL);
+      const lock = new ethers.Contract(
+        LOCK_ADDRESS,
+        ['function balanceOf(address) view returns (uint256)'],
+        rpcProvider
+      );
+
+      let member = false;
+      for (const w of wallets) {
+        if (w.address) {
+          const bal = await lock.balanceOf(w.address);
+          if (bal > BigInt(0)) {
+            member = true;
+            break;
+          }
+        }
+      }
+      setHasMembership(member);
+    } catch (e) {
+      console.error('Membership check failed:', e);
+    } finally {
+      setLoadingMembership(false);
+    }
+  };
+
+  useEffect(() => {
+    checkMembership();
+  }, [ready, authenticated, wallets]);
+
+  const connectWallet = async () => {
+    if (!authenticated) {
+      try {
+        await login();
+      } catch (e) {
+        console.error('Login error:', e);
+      }
+    }
+  };
+
+  const purchaseMembership = async () => {
+    const w = wallets[0];
+    if (!w) {
+      console.error('No wallet connected.');
+      return;
+    }
+
+    setIsPurchasing(true);
+    try {
+      const unlockConfig = {
+        [NETWORK_ID]: {
+          provider: BASE_RPC_URL,
+          unlockAddress: LOCK_ADDRESS,
+        },
+      };
+      const walletService = new WalletService(unlockConfig);
+
+      const eip1193 = await w.getEthereumProvider();
+      const browserProvider = new ethers.BrowserProvider(eip1193);
+      const signer = await browserProvider.getSigner();
+      const rpcProvider = new ethers.JsonRpcProvider(BASE_RPC_URL);
+
+      await walletService.connect(rpcProvider, signer);
+      // Remove override; use default ETH purchase
+      await walletService.purchaseKey({
+        lockAddress: LOCK_ADDRESS,
+        owner: w.address,
+      });
+      await checkMembership();
+    } catch (e) {
+      console.error('Purchase failed:', e);
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
+  const fundUserWallet = async () => {
+    const w = wallets[0];
+    if (!w || !w.address) {
+      console.error('No wallet to fund.');
+      return;
+    }
+
+    setIsFunding(true);
+    try {
+      await fundWallet(w.address, { chain: base });
+    } catch (e) {
+      console.error('Funding failed:', e);
+    } finally {
+      setIsFunding(false);
+    }
+  };
+
+  const refreshMembership = () => checkMembership();
+
+  if (!ready) return <div>Loading…</div>;
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h1>PGP for Crypto Community</h1>
+
+      {!authenticated ? (
+        <div>
+          <p>Please connect your wallet to continue.</p>
+          <button onClick={connectWallet}>Connect Wallet</button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ) : wallets.length === 0 ? (
+        <div>
+          <p>No external wallet detected. Please ensure your wallet extension is installed and connected.</p>
+          <button onClick={connectWallet}>Connect Wallet</button>
+          <button onClick={logout} style={{ marginLeft: 10 }}>Log Out</button>
+        </div>
+      ) : loadingMembership ? (
+        <p>Checking membership…</p>
+      ) : hasMembership ? (
+        <div>
+          <p>Hello, {wallets[0].address}! You’re a member.</p>
+          <button onClick={logout}>Log Out</button>
+        </div>
+      ) : (
+        <div>
+          <p>Hello, {wallets[0].address}! You need a membership.</p>
+          <p>Fund or purchase a membership to join the community.</p>
+          <div style={{ marginBottom: 16 }}>
+            <button onClick={fundUserWallet} disabled={isFunding}>
+              {isFunding ? 'Funding…' : 'Fund Wallet'}
+            </button>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <button onClick={purchaseMembership} disabled={isPurchasing}>
+              {isPurchasing ? 'Purchasing…' : 'Get Membership'}
+            </button>
+            <button onClick={refreshMembership} style={{ marginLeft: 10 }}>
+              Refresh Status
+            </button>
+          </div>
+          <button onClick={logout} style={{ marginLeft: 10 }}>Log Out</button>
+        </div>
+      )}
     </div>
   );
 }
