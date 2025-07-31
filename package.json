@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && mv out out-temp && mkdir -p out/community && mv out-temp/* out/community/ && rm -rf out-temp",
+    "build": "tsc -p tsconfig.lambda.json && next build && mv out out-temp && mkdir -p out/community && mv out-temp/* out/community/ && rm -rf out-temp",
     "start": "next start",
     "lint": "next lint",
     "serve": "serve out -r '{\"source\": \"/community\",\"destination\": \"/community.html\"}' -r '{\"source\": \"/community/(.*)\",\"destination\": \"/$1\"}'"
