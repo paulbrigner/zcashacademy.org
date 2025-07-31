@@ -2,12 +2,12 @@
 
 import { usePrivy, useWallets, useFundWallet } from '@privy-io/react-auth';
 import { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
+import { BrowserProvider, Contract, JsonRpcProvider } from 'ethers';
 import { WalletService } from '@unlock-protocol/unlock-js';
 import { base } from 'viem/chains';
 
 export default function Home() {
-  const { login, logout, authenticated, user, ready } = usePrivy();
+  const { login, logout, authenticated, ready } = usePrivy();
   const { wallets } = useWallets();
   const { fundWallet } = useFundWallet();
 
@@ -19,31 +19,32 @@ export default function Home() {
   const LOCK_ADDRESS = '0xed16cd934780a48697c2fd89f1b13ad15f0b64e1';
   const NETWORK_ID = 8453;
   const BASE_RPC_URL = 'https://mainnet.base.org';
+  const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
+  // Check if connected wallet has membership
   const checkMembership = async () => {
     if (!ready || !authenticated || wallets.length === 0) return;
     setLoadingMembership(true);
     try {
-      const rpcProvider = new ethers.JsonRpcProvider(BASE_RPC_URL);
-      const lock = new ethers.Contract(
+      const provider = new JsonRpcProvider(BASE_RPC_URL, NETWORK_ID);
+      const lockContract = new Contract(
         LOCK_ADDRESS,
         ['function balanceOf(address) view returns (uint256)'],
-        rpcProvider
+        provider
       );
-
       let member = false;
       for (const w of wallets) {
         if (w.address) {
-          const bal = await lock.balanceOf(w.address);
-          if (bal > BigInt(0)) {
+          const balance = await lockContract.balanceOf(w.address);
+          if (balance.toString() !== '0') {
             member = true;
             break;
           }
         }
       }
       setHasMembership(member);
-    } catch (e) {
-      console.error('Membership check failed:', e);
+    } catch (error) {
+      console.error('Membership check failed:', error);
     } finally {
       setLoadingMembership(false);
     }
@@ -57,43 +58,69 @@ export default function Home() {
     if (!authenticated) {
       try {
         await login();
-      } catch (e) {
-        console.error('Login error:', e);
+      } catch (error) {
+        console.error('Login error:', error);
       }
     }
   };
 
+  // Purchase membership with USDC
   const purchaseMembership = async () => {
     const w = wallets[0];
-    if (!w) {
+    if (!w?.address) {
       console.error('No wallet connected.');
       return;
     }
-
     setIsPurchasing(true);
     try {
+      // Ensure wallet is on Base network
+      const eip1193 = await w.getEthereumProvider();
+      try {
+        await eip1193.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }] });
+      } catch (switchError: any) {
+        if (switchError.code === 4902) {
+          // Add Base chain if missing
+          await eip1193.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x2105',
+              chainName: 'Base',
+              rpcUrls: ['https://mainnet.base.org'],
+              nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+              blockExplorerUrls: ['https://basescan.org'],
+            }],
+          });
+        } else {
+          throw switchError;
+        }
+      }
+
+      // Setup browser provider and signer
+      const browserProvider = new BrowserProvider(eip1193, NETWORK_ID);
+      const signer = await browserProvider.getSigner();
+
+      // Initialize Unlock.js service
       const unlockConfig = {
-        [NETWORK_ID]: {
-          provider: BASE_RPC_URL,
-          unlockAddress: LOCK_ADDRESS,
-        },
+        [NETWORK_ID]: { provider: BASE_RPC_URL, unlockAddress: LOCK_ADDRESS },
       };
       const walletService = new WalletService(unlockConfig);
+      console.log('Connecting Unlock service...');
+      await walletService.connect(browserProvider as unknown as JsonRpcProvider);
 
-      const eip1193 = await w.getEthereumProvider();
-      const browserProvider = new ethers.BrowserProvider(eip1193);
-      const signer = await browserProvider.getSigner();
-      const rpcProvider = new ethers.JsonRpcProvider(BASE_RPC_URL);
+      console.log('Purchasing key for 0.1 USDC...');
+      const txHash = await walletService.purchaseKey(
+        {
+          lockAddress: LOCK_ADDRESS,
+          owner:       w.address,
+          keyPrice:    '0.1',
+          currencyContractAddress: USDC_ADDRESS,
+        } as any
+      );
+      console.log('purchaseKey TX hash:', txHash);
 
-      await walletService.connect(rpcProvider, signer);
-      // Remove override; use default ETH purchase
-      await walletService.purchaseKey({
-        lockAddress: LOCK_ADDRESS,
-        owner: w.address,
-      });
       await checkMembership();
-    } catch (e) {
-      console.error('Purchase failed:', e);
+    } catch (error) {
+      console.error('Purchase failed:', error);
     } finally {
       setIsPurchasing(false);
     }
@@ -101,29 +128,23 @@ export default function Home() {
 
   const fundUserWallet = async () => {
     const w = wallets[0];
-    if (!w || !w.address) {
+    if (!w?.address) {
       console.error('No wallet to fund.');
       return;
     }
-
     setIsFunding(true);
     try {
       await fundWallet(w.address, { chain: base });
-    } catch (e) {
-      console.error('Funding failed:', e);
+    } catch (error) {
+      console.error('Funding failed:', error);
     } finally {
       setIsFunding(false);
     }
   };
 
-  const refreshMembership = () => checkMembership();
-
-  if (!ready) return <div>Loading…</div>;
-
   return (
     <div style={{ padding: 20 }}>
       <h1>PGP for Crypto Community</h1>
-
       {!authenticated ? (
         <div>
           <p>Please connect your wallet to continue.</p>
@@ -131,9 +152,9 @@ export default function Home() {
         </div>
       ) : wallets.length === 0 ? (
         <div>
-          <p>No external wallet detected. Please ensure your wallet extension is installed and connected.</p>
+          <p>No external wallet detected. Please install and connect your wallet.</p>
           <button onClick={connectWallet}>Connect Wallet</button>
-          <button onClick={logout} style={{ marginLeft: 10 }}>Log Out</button>
+          <button onClick={logout}>Log Out</button>
         </div>
       ) : loadingMembership ? (
         <p>Checking membership…</p>
@@ -145,21 +166,14 @@ export default function Home() {
       ) : (
         <div>
           <p>Hello, {wallets[0].address}! You need a membership.</p>
-          <p>Fund or purchase a membership to join the community.</p>
-          <div style={{ marginBottom: 16 }}>
-            <button onClick={fundUserWallet} disabled={isFunding}>
-              {isFunding ? 'Funding…' : 'Fund Wallet'}
-            </button>
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <button onClick={purchaseMembership} disabled={isPurchasing}>
-              {isPurchasing ? 'Purchasing…' : 'Get Membership'}
-            </button>
-            <button onClick={refreshMembership} style={{ marginLeft: 10 }}>
-              Refresh Status
-            </button>
-          </div>
-          <button onClick={logout} style={{ marginLeft: 10 }}>Log Out</button>
+          <button onClick={fundUserWallet} disabled={isFunding}>
+            {isFunding ? 'Funding…' : 'Fund Wallet'}
+          </button>
+          <button onClick={purchaseMembership} disabled={isPurchasing}>
+            {isPurchasing ? 'Purchasing…' : 'Get Membership'}
+          </button>
+          <button onClick={checkMembership}>Refresh Status</button>
+          <button onClick={logout}>Log Out</button>
         </div>
       )}
     </div>
