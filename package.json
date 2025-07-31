@@ -10,6 +10,7 @@
     "serve": "serve out -r '{\"source\": \"/community\",\"destination\": \"/community.html\"}' -r '{\"source\": \"/community/(.*)\",\"destination\": \"/$1\"}'"
   },
   "dependencies": {
+    "@aws-sdk/cloudfront-signer": "^3.421.0",
     "@privy-io/react-auth": "^2.20.0",
     "@unlock-protocol/unlock-js": "^0.51.2",
     "ethers": "^6.15.0",
