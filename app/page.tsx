@@ -35,6 +35,19 @@ export default function Home() {
     [unlockConfig]
   );
 
+
+  const UNLOCK_ERRORS: Record<string, string> = {
+    '0x17ed8646': 'Membership sold out or max keys reached.',
+    '0x31af6951': 'Lock sold out.',
+    '0x1f04ddc8': 'Not enough funds.',
+  };
+
+  const decodeUnlockError = (data: string) => {
+    const code = data.slice(0, 10).toLowerCase();
+    return UNLOCK_ERRORS[code] || data;
+  };
+
+
   // Check if connected wallet has membership
   const checkMembership = async () => {
     if (!ready || !authenticated || wallets.length === 0) return;
@@ -149,7 +162,8 @@ export default function Home() {
       await checkMembership();
     } catch (error: any) {
       if (error?.data) {
-        console.error('Purchase failed:', error.data);
+        console.error('Purchase failed:', decodeUnlockError(error.data));
+
       } else {
         console.error('Purchase failed:', error);
       }
