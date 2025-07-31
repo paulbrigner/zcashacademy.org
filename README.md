@@ -34,3 +34,16 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## AWS Lambda Deployment
+
+The `generateSignedUrl` function used to sign CloudFront URLs can be built and
+packaged for Lambda with:
+
+```bash
+npm run build:lambda
+```
+
+This command creates a bundled `generateSignedUrl.zip` archive at the repository
+root that can be uploaded to AWS Lambda. Configure the function's handler as
+`index.handler` when deploying the zip file.
