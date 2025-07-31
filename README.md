@@ -44,6 +44,6 @@ packaged for Lambda with:
 npm run build:lambda
 ```
 
-This command creates a bundled `generateSignedUrl.zip` archive at the repository
-root that can be uploaded to AWS Lambda. Configure the function's handler as
-`index.handler` when deploying the zip file.
+This command compiles the function into `lambda-build/index.js` and then zips
+the result into `generateSignedUrl.zip` at the repository root. Upload that zip
+file to AWS Lambda and configure the handler as `index.handler` when deploying.
