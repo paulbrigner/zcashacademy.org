@@ -100,7 +100,11 @@ export default function Home() {
 
       // Initialize Unlock.js service
       const unlockConfig = {
-        [NETWORK_ID]: { provider: BASE_RPC_URL, unlockAddress: LOCK_ADDRESS },
+        [NETWORK_ID]: {
+          provider: BASE_RPC_URL,
+          // Unlock contract address on Base mainnet
+          unlockAddress: '0xd0b14797b9D08493392865647384974470202A78',
+        },
       };
       const walletService = new WalletService(unlockConfig);
       console.log('Connecting Unlock service...');
