@@ -11,6 +11,7 @@ export function Providers({ children }: { children: ReactNode }) {
       config={{
         loginMethods: ['wallet'],
         appearance: {
+          showWalletLoginFirst: true,
           theme: 'light',
           accentColor: '#676FFF',
           walletChainType: 'ethereum-only',

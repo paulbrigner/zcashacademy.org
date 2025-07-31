@@ -1,7 +1,7 @@
 'use client';
 
 import { usePrivy, useWallets, useFundWallet } from '@privy-io/react-auth';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { BrowserProvider, Contract, JsonRpcProvider, parseUnits } from 'ethers';
 import { WalletService } from '@unlock-protocol/unlock-js';
 import { base } from 'viem/chains';
@@ -20,6 +20,20 @@ export default function Home() {
   const NETWORK_ID = 8453;
   const BASE_RPC_URL = 'https://mainnet.base.org';
   const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+  const unlockConfig = useMemo(
+    () => ({
+      [NETWORK_ID]: {
+        provider: BASE_RPC_URL,
+        unlockAddress: '0xd0b14797b9D08493392865647384974470202A78',
+      },
+    }),
+    []
+  );
+  const walletService = useMemo(
+    () => new WalletService(unlockConfig),
+    [unlockConfig]
+  );
 
   // Check if connected wallet has membership
   const checkMembership = async () => {
@@ -99,15 +113,7 @@ export default function Home() {
       const browserProvider = new BrowserProvider(eip1193, NETWORK_ID);
       const signer = await browserProvider.getSigner();
 
-      // Initialize Unlock.js service
-      const unlockConfig = {
-        [NETWORK_ID]: {
-          provider: BASE_RPC_URL,
-          // Unlock contract address on Base mainnet
-          unlockAddress: '0xd0b14797b9D08493392865647384974470202A78',
-        },
-      };
-      const walletService = new WalletService(unlockConfig);
+      // Connect Unlock.js service
       console.log('Connecting Unlock service...');
       await walletService.connect(browserProvider as unknown as JsonRpcProvider);
 
@@ -141,8 +147,12 @@ export default function Home() {
       console.log('purchaseKey TX hash:', txHash);
 
       await checkMembership();
-    } catch (error) {
-      console.error('Purchase failed:', error);
+    } catch (error: any) {
+      if (error?.data) {
+        console.error('Purchase failed:', error.data);
+      } else {
+        console.error('Purchase failed:', error);
+      }
     } finally {
       setIsPurchasing(false);
     }
