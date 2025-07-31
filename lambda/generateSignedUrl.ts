@@ -1,4 +1,4 @@
-import { getSignedUrl } from '@aws-sdk/cloudfront-signer';
+import { getSignedUrl } from './cloudFrontSigner';
 import { Contract, JsonRpcProvider } from 'ethers';
 import {
   SecretsManagerClient,
@@ -58,7 +58,7 @@ export const handler = async (event: any) => {
     const url = getSignedUrl({
       url: `https://${CLOUDFRONT_DOMAIN}/${file}`,
       keyPairId: KEY_PAIR_ID,
-      dateLessThan: new Date(expires * 1000),
+      expires,
       privateKey,
     });
 
