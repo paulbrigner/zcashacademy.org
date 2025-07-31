@@ -112,7 +112,8 @@ export default function Home() {
           lockAddress: LOCK_ADDRESS,
           owner:       w.address,
           keyPrice:    '0.1',
-          currencyContractAddress: USDC_ADDRESS,
+          erc20Address: USDC_ADDRESS,
+          decimals: 6,
         } as any
       );
       console.log('purchaseKey TX hash:', txHash);
