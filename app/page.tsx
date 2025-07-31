@@ -95,9 +95,8 @@ export default function Home() {
         }
       }
 
-      // Setup browser provider and signer
+      // Setup browser provider
       const browserProvider = new BrowserProvider(eip1193, NETWORK_ID);
-      const signer = await browserProvider.getSigner();
 
       // Initialize Unlock.js service
       const unlockConfig = {
