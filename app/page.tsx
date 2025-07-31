@@ -275,55 +275,94 @@ export default function Home() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>PGP for Crypto Community</h1>
+    <div className="max-w-md mx-auto p-6 space-y-6">
+      <h1 className="text-3xl font-bold text-center">PGP for Crypto Community</h1>
       {!authenticated ? (
-        <div>
+        <div className="space-y-4 text-center">
           <p>Please connect your wallet to continue.</p>
-          <button onClick={connectWallet}>Connect Wallet</button>
+          <button
+            className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700"
+            onClick={connectWallet}
+          >
+            Connect Wallet
+          </button>
         </div>
       ) : wallets.length === 0 ? (
-        <div>
+        <div className="space-y-4 text-center">
           <p>No external wallet detected. Please install and connect your wallet.</p>
-          <button onClick={connectWallet}>Connect Wallet</button>
-          <button onClick={logout}>Log Out</button>
+          <div className="space-x-2">
+            <button
+              className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700"
+              onClick={connectWallet}
+            >
+              Connect Wallet
+            </button>
+            <button
+              className="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300"
+              onClick={logout}
+            >
+              Log Out
+            </button>
+          </div>
         </div>
       ) : loadingMembership ? (
         <p>Checking membership…</p>
       ) : membershipStatus === 'active' ? (
-        <div>
+        <div className="space-y-4 text-center">
           <p>Hello, {wallets[0].address}! You’re a member.</p>
-          <button onClick={logout}>Log Out</button>
+          <button
+            className="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300"
+            onClick={logout}
+          >
+            Log Out
+          </button>
         </div>
       ) : (
-        <div>
+        <div className="space-y-4 text-center">
           <p>
             Hello, {wallets[0].address}!{' '}
             {membershipStatus === 'expired'
               ? 'Your membership has expired.'
               : 'You need a membership.'}
           </p>
-          <button onClick={fundUserWallet} disabled={isFunding}>
-            {isFunding ? 'Funding…' : 'Fund Wallet'}
-          </button>
-          <button
-            onClick={
-              membershipStatus === 'expired'
-                ? renewMembership
-                : purchaseMembership
-            }
-            disabled={isPurchasing}
-          >
-            {isPurchasing
-              ? membershipStatus === 'expired'
-                ? 'Renewing…'
-                : 'Purchasing…'
-              : membershipStatus === 'expired'
-              ? 'Renew Membership'
-              : 'Get Membership'}
-          </button>
-          <button onClick={checkMembership}>Refresh Status</button>
-          <button onClick={logout}>Log Out</button>
+          <div className="space-x-2">
+            <button
+              className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              onClick={fundUserWallet}
+              disabled={isFunding}
+            >
+              {isFunding ? 'Funding…' : 'Fund Wallet'}
+            </button>
+            <button
+              className="px-4 py-2 border rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+              onClick={
+                membershipStatus === 'expired'
+                  ? renewMembership
+                  : purchaseMembership
+              }
+              disabled={isPurchasing}
+            >
+              {isPurchasing
+                ? membershipStatus === 'expired'
+                  ? 'Renewing…'
+                  : 'Purchasing…'
+                : membershipStatus === 'expired'
+                ? 'Renew Membership'
+                : 'Get Membership'}
+            </button>
+            <button
+              className="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300"
+              onClick={checkMembership}
+            >
+              Refresh Status
+            </button>
+            <button
+              className="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300"
+              onClick={logout}
+            >
+              Log Out
+            </button>
+          </div>
         </div>
       )}
     </div>
