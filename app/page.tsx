@@ -12,6 +12,7 @@ export default function Home() {
   const { fundWallet } = useFundWallet();
 
   const [hasMembership, setHasMembership] = useState(false);
+  const [membershipStatus, setMembershipStatus] = useState<'active' | 'expired' | 'none'>('none');
   const [loadingMembership, setLoadingMembership] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
@@ -56,20 +57,25 @@ export default function Home() {
       const provider = new JsonRpcProvider(BASE_RPC_URL, NETWORK_ID);
       const lockContract = new Contract(
         LOCK_ADDRESS,
-        ['function balanceOf(address) view returns (uint256)'],
+        [
+          'function totalKeys(address) view returns (uint256)',
+          'function getHasValidKey(address) view returns (bool)'
+        ],
         provider
       );
-      let member = false;
+      let status: 'active' | 'expired' | 'none' = 'none';
       for (const w of wallets) {
         if (w.address) {
-          const balance = await lockContract.balanceOf(w.address);
-          if (balance.toString() !== '0') {
-            member = true;
+          const total = await lockContract.totalKeys(w.address);
+          if (total.toString() !== '0') {
+            const valid = await lockContract.getHasValidKey(w.address);
+            status = valid ? 'active' : 'expired';
             break;
           }
         }
       }
-      setHasMembership(member);
+      setMembershipStatus(status);
+      setHasMembership(status === 'active');
     } catch (error) {
       console.error('Membership check failed:', error);
     } finally {
@@ -172,6 +178,85 @@ export default function Home() {
     }
   };
 
+  // Renew an expired membership
+  const renewMembership = async () => {
+    const w = wallets[0];
+    if (!w?.address) {
+      console.error('No wallet connected.');
+      return;
+    }
+    setIsPurchasing(true);
+    try {
+      const eip1193 = await w.getEthereumProvider();
+      try {
+        await eip1193.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2105' }],
+        });
+      } catch (switchError: any) {
+        if (switchError.code === 4902) {
+          await eip1193.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: '0x2105',
+                chainName: 'Base',
+                rpcUrls: ['https://mainnet.base.org'],
+                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                blockExplorerUrls: ['https://basescan.org'],
+              },
+            ],
+          });
+        } else {
+          throw switchError;
+        }
+      }
+
+      const browserProvider = new BrowserProvider(eip1193, NETWORK_ID);
+      const signer = await browserProvider.getSigner();
+
+      console.log('Connecting Unlock service...');
+      await walletService.connect(browserProvider as unknown as JsonRpcProvider);
+
+      const usdc = new Contract(
+        USDC_ADDRESS,
+        [
+          'function allowance(address owner, address spender) view returns (uint256)',
+          'function approve(address spender, uint256 amount) returns (bool)',
+        ],
+        signer
+      );
+      const amount = parseUnits('0.1', 6);
+      const allowance = await usdc.allowance(w.address, LOCK_ADDRESS);
+      if (allowance < amount) {
+        console.log('Approving USDC spend...');
+        const approveTx = await usdc.approve(LOCK_ADDRESS, amount);
+        await approveTx.wait();
+      }
+
+      console.log('Renewing membership for 0.1 USDC...');
+      const txHash = await walletService.extendKey({
+        lockAddress: LOCK_ADDRESS,
+        owner: w.address,
+        keyPrice: '0.1',
+        erc20Address: USDC_ADDRESS,
+        decimals: 6,
+        referrer: w.address,
+      } as any);
+      console.log('extendKey TX hash:', txHash);
+
+      await checkMembership();
+    } catch (error: any) {
+      if (error?.data) {
+        console.error('Renewal failed:', decodeUnlockError(error.data));
+      } else {
+        console.error('Renewal failed:', error);
+      }
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
   const fundUserWallet = async () => {
     const w = wallets[0];
     if (!w?.address) {
@@ -204,19 +289,37 @@ export default function Home() {
         </div>
       ) : loadingMembership ? (
         <p>Checking membership…</p>
-      ) : hasMembership ? (
+      ) : membershipStatus === 'active' ? (
         <div>
           <p>Hello, {wallets[0].address}! You’re a member.</p>
           <button onClick={logout}>Log Out</button>
         </div>
       ) : (
         <div>
-          <p>Hello, {wallets[0].address}! You need a membership.</p>
+          <p>
+            Hello, {wallets[0].address}!{' '}
+            {membershipStatus === 'expired'
+              ? 'Your membership has expired.'
+              : 'You need a membership.'}
+          </p>
           <button onClick={fundUserWallet} disabled={isFunding}>
             {isFunding ? 'Funding…' : 'Fund Wallet'}
           </button>
-          <button onClick={purchaseMembership} disabled={isPurchasing}>
-            {isPurchasing ? 'Purchasing…' : 'Get Membership'}
+          <button
+            onClick={
+              membershipStatus === 'expired'
+                ? renewMembership
+                : purchaseMembership
+            }
+            disabled={isPurchasing}
+          >
+            {isPurchasing
+              ? membershipStatus === 'expired'
+                ? 'Renewing…'
+                : 'Purchasing…'
+              : membershipStatus === 'expired'
+              ? 'Renew Membership'
+              : 'Get Membership'}
           </button>
           <button onClick={checkMembership}>Refresh Status</button>
           <button onClick={logout}>Log Out</button>
