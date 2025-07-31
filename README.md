@@ -47,3 +47,7 @@ npm run build:lambda
 This command compiles the function into `lambda-build/index.js` and then zips
 the result into `generateSignedUrl.zip` at the repository root. Upload that zip
 file to AWS Lambda and configure the handler as `index.handler` when deploying.
+
+### Node 18 Update
+
+Node 18 disables the `RSA-SHA1` signing algorithm. The Lambda function now signs CloudFront URLs with `RSA-SHA256`, so the `NODE_OPTIONS=--openssl-legacy-provider` environment variable is no longer required.
