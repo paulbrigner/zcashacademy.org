@@ -35,6 +35,7 @@ export default function Home() {
     [unlockConfig]
   );
 
+
   const UNLOCK_ERRORS: Record<string, string> = {
     '0x17ed8646': 'Membership sold out or max keys reached.',
     '0x31af6951': 'Lock sold out.',
@@ -45,6 +46,7 @@ export default function Home() {
     const code = data.slice(0, 10).toLowerCase();
     return UNLOCK_ERRORS[code] || data;
   };
+
 
   // Check if connected wallet has membership
   const checkMembership = async () => {
@@ -161,6 +163,7 @@ export default function Home() {
     } catch (error: any) {
       if (error?.data) {
         console.error('Purchase failed:', decodeUnlockError(error.data));
+
       } else {
         console.error('Purchase failed:', error);
       }
