@@ -2,7 +2,7 @@
 
 import { usePrivy, useWallets, useFundWallet } from '@privy-io/react-auth';
 import { useState, useEffect } from 'react';
-import { BrowserProvider, Contract, JsonRpcProvider } from 'ethers';
+import { BrowserProvider, Contract, JsonRpcProvider, parseUnits } from 'ethers';
 import { WalletService } from '@unlock-protocol/unlock-js';
 import { base } from 'viem/chains';
 
@@ -95,8 +95,9 @@ export default function Home() {
         }
       }
 
-      // Setup browser provider
+      // Setup browser provider and signer
       const browserProvider = new BrowserProvider(eip1193, NETWORK_ID);
+      const signer = await browserProvider.getSigner();
 
       // Initialize Unlock.js service
       const unlockConfig = {
@@ -110,12 +111,29 @@ export default function Home() {
       console.log('Connecting Unlock service...');
       await walletService.connect(browserProvider as unknown as JsonRpcProvider);
 
+      // Approve USDC spend if needed
+      const usdc = new Contract(
+        USDC_ADDRESS,
+        [
+          'function allowance(address owner, address spender) view returns (uint256)',
+          'function approve(address spender, uint256 amount) returns (bool)',
+        ],
+        signer
+      );
+      const amount = parseUnits('0.1', 6);
+      const allowance = await usdc.allowance(w.address, LOCK_ADDRESS);
+      if (allowance < amount) {
+        console.log('Approving USDC spend...');
+        const approveTx = await usdc.approve(LOCK_ADDRESS, amount);
+        await approveTx.wait();
+      }
+
       console.log('Purchasing key for 0.1 USDC...');
       const txHash = await walletService.purchaseKey(
         {
           lockAddress: LOCK_ADDRESS,
-          owner:       w.address,
-          keyPrice:    '0.1',
+          owner: w.address,
+          keyPrice: '0.1',
           erc20Address: USDC_ADDRESS,
           decimals: 6,
         } as any
