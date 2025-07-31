@@ -66,6 +66,7 @@ export default function Home() {
       let status: 'active' | 'expired' | 'none' = 'none';
       for (const w of wallets) {
         if (w.address) {
+
           const total = await lockContract.totalKeys(w.address);
           if (total.toString() !== '0') {
             const valid = await lockContract.getHasValidKey(w.address);
