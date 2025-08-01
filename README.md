@@ -15,7 +15,7 @@ A demo of the deployed site is available at [https://pgpforcrypto.org/community]
 1. **Create a Lock on Unlock Protocol**
    - Deploy a lock or use the demo lock above. Note the lock address, price and network.
 2. **Register a Privy Application**
-   - Sign up for a free Privy developer account and obtain your `PRIVY_APP_ID`.
+   - Sign up for a free Privy developer account and obtain your `Privy App ID`.
 3. **Set Up S3**
    - Create a bucket for member‑only files and upload your HTML/asset content.
    - After the CloudFront distribution is created (next step), apply a bucket policy like the following, replacing the ARNs with your bucket and distribution:
@@ -95,7 +95,7 @@ npm install
    - Create `.env.local` in the project root with your configuration:
 
 ```
-PRIVY_APP_ID=<YOUR PRIVY APP ID>
+NEXT_PUBLIC_PRIVY_APP_ID=<YOUR PRIVY APP ID>
 SIGNER_URL=https://YOUR_LAMBDA_FUNCTION_ID.lambda-url.us-east-1.on.aws/
 LOCK_ADDRESS=0xed16cd934780a48697c2fd89f1b13ad15f0b64e1
 UNLOCK_ADDRESS=0xd0b14797b9D08493392865647384974470202A78
