@@ -10,9 +10,7 @@ const NETWORK_ID = Number(process.env.NETWORK_ID);
 const BASE_RPC_URL = process.env.BASE_RPC_URL as string;
 const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN as string;
 const KEY_PAIR_ID = process.env.KEY_PAIR_ID as string;
-const PRIVATE_KEY_SECRET_ARN =
-  process.env.PRIVATE_KEY_SECRET_ARN ||
-  'arn:aws:secretsmanager:us-east-1:860091316962:secret:pgpcommunity_pk-4s9DKg';
+const PRIVATE_KEY_SECRET_ARN = process.env.PRIVATE_KEY_SECRET_ARN as string;
 
 const secretsClient = new SecretsManagerClient({});
 
