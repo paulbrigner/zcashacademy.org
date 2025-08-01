@@ -17,7 +17,9 @@ export default function Home() {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const SIGNER_URL = process.env.NEXT_PUBLIC_SIGNER_URL;
+  // const SIGNER_URL = process.env.NEXT_PUBLIC_SIGNER_URL;
+  const SIGNER_URL = 'https://emjxaqlflhuemvnkqiwzccgtue0foutk.lambda-url.us-east-1.on.aws/';
+
 
   const LOCK_ADDRESS = '0xed16cd934780a48697c2fd89f1b13ad15f0b64e1';
   const NETWORK_ID = 8453;
