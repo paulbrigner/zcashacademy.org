@@ -16,6 +16,8 @@ export default function Home() {
   const [loadingMembership, setLoadingMembership] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const SIGNER_URL = process.env.NEXT_PUBLIC_SIGNER_URL;
 
   const LOCK_ADDRESS = '0xed16cd934780a48697c2fd89f1b13ad15f0b64e1';
   const NETWORK_ID = 8453;
@@ -274,6 +276,28 @@ export default function Home() {
     }
   };
 
+  const getContentUrl = async (file: string) => {
+    const w = wallets[0];
+    if (!w?.address) {
+      console.error('No wallet connected.');
+      return;
+    }
+    if (!SIGNER_URL) {
+      console.error('Signer URL not configured');
+      return;
+    }
+    try {
+      const res = await fetch(`${SIGNER_URL}?address=${w.address}&file=${file}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch signed URL');
+      }
+      const data = await res.json();
+      setSignedUrl(data.url);
+    } catch (err) {
+      console.error('Could not load content:', err);
+    }
+  };
+
   return (
     <div className="max-w-md mx-auto p-6 space-y-6">
       <h1 className="text-3xl font-bold text-center">PGP for Crypto Community</h1>
@@ -310,12 +334,38 @@ export default function Home() {
       ) : membershipStatus === 'active' ? (
         <div className="space-y-4 text-center">
           <p>Hello, {wallets[0].address}! You’re a member.</p>
-          <button
-            className="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300"
-            onClick={logout}
-          >
-            Log Out
-          </button>
+          <div className="space-x-2">
+            <button
+              className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => getContentUrl('index.html')}
+            >
+              View Home
+            </button>
+            <button
+              className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => getContentUrl('guide.html')}
+            >
+              View Guide
+            </button>
+            <button
+              className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => getContentUrl('faq.html')}
+            >
+              View FAQ
+            </button>
+            <button
+              className="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300"
+              onClick={logout}
+            >
+              Log Out
+            </button>
+          </div>
+          {signedUrl && (
+            <iframe
+              src={signedUrl}
+              className="w-full h-96 border mt-4"
+            ></iframe>
+          )}
         </div>
       ) : (
         <div className="space-y-4 text-center">
