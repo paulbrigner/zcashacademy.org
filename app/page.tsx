@@ -17,19 +17,16 @@ export default function Home() {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  // const SIGNER_URL = process.env.NEXT_PUBLIC_SIGNER_URL;
-  const SIGNER_URL = 'https://emjxaqlflhuemvnkqiwzccgtue0foutk.lambda-url.us-east-1.on.aws/';
-
-
-  const UNLOCK_ADDRESS = '0xd0b14797b9D08493392865647384974470202A78';
-  const LOCK_ADDRESS = '0xed16cd934780a48697c2fd89f1b13ad15f0b64e1';
-  const NETWORK_ID = 8453;
-  const BASE_RPC_URL = 'https://mainnet.base.org';
-  const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+  const SIGNER_URL = process.env.SIGNER_URL as string;
+  const UNLOCK_ADDRESS = process.env.UNLOCK_ADDRESS as string;
+  const LOCK_ADDRESS = process.env.LOCK_ADDRESS as string;
+  const BASE_NETWORK_ID = Number(process.env.BASE_NETWORK_ID);
+  const BASE_RPC_URL = process.env.BASE_RPC_URL as string;
+  const USDC_ADDRESS = process.env.USDC_ADDRESS as string;
 
   const unlockConfig = useMemo(
     () => ({
-      [NETWORK_ID]: {
+      [BASE_NETWORK_ID]: {
         provider: BASE_RPC_URL,
         unlockAddress: UNLOCK_ADDRESS,
       },
@@ -59,7 +56,7 @@ export default function Home() {
     if (!ready || !authenticated || wallets.length === 0) return;
     setLoadingMembership(true);
     try {
-      const provider = new JsonRpcProvider(BASE_RPC_URL, NETWORK_ID);
+const provider = new JsonRpcProvider(BASE_RPC_URL, BASE_NETWORK_ID);
       const lockContract = new Contract(
         LOCK_ADDRESS,
         [
@@ -135,7 +132,7 @@ export default function Home() {
       }
 
       // Setup browser provider and signer
-      const browserProvider = new BrowserProvider(eip1193, NETWORK_ID);
+const browserProvider = new BrowserProvider(eip1193, BASE_NETWORK_ID);
       const signer = await browserProvider.getSigner();
 
       // Connect Unlock.js service
@@ -218,7 +215,7 @@ export default function Home() {
         }
       }
 
-      const browserProvider = new BrowserProvider(eip1193, NETWORK_ID);
+      const browserProvider = new BrowserProvider(eip1193, BASE_NETWORK_ID);
       const signer = await browserProvider.getSigner();
 
       console.log('Connecting Unlock service...');
