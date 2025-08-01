@@ -18,7 +18,7 @@ export function getSignedUrl(params: {
   };
 
   const policyString = JSON.stringify(policy);
-  const sign = createSign('RSA-SHA256');
+  const sign = createSign('RSA-SHA1');
   sign.update(policyString);
   sign.end();
   const signature = sign.sign(params.privateKey);

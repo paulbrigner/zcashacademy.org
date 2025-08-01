@@ -12,7 +12,7 @@ const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN as string;
 const KEY_PAIR_ID = process.env.KEY_PAIR_ID as string;
 const PRIVATE_KEY_SECRET_ARN =
   process.env.PRIVATE_KEY_SECRET_ARN ||
-  'arn:aws:secretsmanager:us-east-1:860091316962:secret:pgpcommunity-private-key-ay6WCl';
+  'arn:aws:secretsmanager:us-east-1:860091316962:secret:pgpcommunity_pk-4s9DKg';
 
 const secretsClient = new SecretsManagerClient({});
 
