@@ -21,6 +21,7 @@ export default function Home() {
   const SIGNER_URL = 'https://emjxaqlflhuemvnkqiwzccgtue0foutk.lambda-url.us-east-1.on.aws/';
 
 
+  const UNLOCK_ADDRESS = '0xd0b14797b9D08493392865647384974470202A78';
   const LOCK_ADDRESS = '0xed16cd934780a48697c2fd89f1b13ad15f0b64e1';
   const NETWORK_ID = 8453;
   const BASE_RPC_URL = 'https://mainnet.base.org';
@@ -30,7 +31,7 @@ export default function Home() {
     () => ({
       [NETWORK_ID]: {
         provider: BASE_RPC_URL,
-        unlockAddress: '0xd0b14797b9D08493392865647384974470202A78',
+        unlockAddress: UNLOCK_ADDRESS,
       },
     }),
     []
@@ -356,7 +357,7 @@ export default function Home() {
               View FAQ
             </button>
             <button
-              className="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300"
+              className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700"
               onClick={logout}
             >
               Log Out
@@ -403,13 +404,13 @@ export default function Home() {
                 : 'Get Membership'}
             </button>
             <button
-              className="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300"
+              className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700"
               onClick={checkMembership}
             >
               Refresh Status
             </button>
             <button
-              className="px-4 py-2 border rounded-md bg-gray-200 hover:bg-gray-300"
+              className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700"
               onClick={logout}
             >
               Log Out
