@@ -4,6 +4,26 @@ This project demonstrates a token‑gated membership site built with [Unlock Pro
 
 A demo of the deployed site is available at [https://pgpforcrypto.org/community](https://pgpforcrypto.org/community).
 
+## Dependencies
+Core Dependencies:
+next@15.4.4
+react@19.1.1
+react-dom@19.1.1
+@aws-sdk/client-secrets-manager@3.421.0
+@aws-sdk/cloudfront-signer@3.421.0
+@privy-io/react-auth@2.20.0
+@unlock-protocol/unlock-js@0.51.2
+ethers@6.15.0
+
+Development Dependencies:
+@tailwindcss/postcss@4
+@types/node@20
+@types/react@19
+@types/react-dom@19
+esbuild@0.19.12
+tailwindcss@4
+typescript@5
+
 ## Overview
 
 - **Unlock Protocol** – manages the membership NFTs. In this example a lock on Base network costs `0.10` USDC and keys expire after 30 days ([contract](https://basescan.org/address/0xed16cd934780a48697c2fd89f1b13ad15f0b64e1)).
@@ -96,12 +116,12 @@ npm install
 
 ```
 NEXT_PUBLIC_PRIVY_APP_ID=<YOUR PRIVY APP ID>
-SIGNER_URL=https://YOUR_LAMBDA_FUNCTION_ID.lambda-url.us-east-1.on.aws/
-LOCK_ADDRESS=0xed16cd934780a48697c2fd89f1b13ad15f0b64e1
-UNLOCK_ADDRESS=0xd0b14797b9D08493392865647384974470202A78
-BASE_NETWORK_ID=8453
-BASE_RPC_URL=https://mainnet.base.org
-USDC_ADDRESS=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+NEXT_PUBLIC_SIGNER_URL=https://YOUR_LAMBDA_FUNCTION_ID.lambda-url.us-east-1.on.aws/
+NEXT_PUBLIC_LOCK_ADDRESS=0xed16cd934780a48697c2fd89f1b13ad15f0b64e1
+NEXT_PUBLIC_UNLOCK_ADDRESS=0xd0b14797b9D08493392865647384974470202A78
+NEXT_PUBLIC_BASE_NETWORK_ID=8453
+NEXT_PUBLIC_BASE_RPC_URL=https://mainnet.base.org
+NEXT_PUBLIC_USDC_ADDRESS=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
 ```
 
    - Build the project and package the Lambda code:
