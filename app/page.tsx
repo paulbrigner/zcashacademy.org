@@ -2,9 +2,22 @@
 
 import { usePrivy, useWallets, useFundWallet } from '@privy-io/react-auth';
 import { useState, useEffect, useMemo } from 'react';
-import { BrowserProvider, Contract, JsonRpcProvider, parseUnits } from 'ethers';
 import { WalletService } from '@unlock-protocol/unlock-js';
 import { base } from 'viem/chains';
+import {
+  SIGNER_URL,
+  UNLOCK_ADDRESS,
+  LOCK_ADDRESS,
+  BASE_NETWORK_ID,
+  BASE_RPC_URL,
+  USDC_ADDRESS,
+} from '@/lib/config';
+import {
+  checkMembership as fetchMembership,
+  purchaseMembership as purchaseMembershipService,
+  renewMembership as renewMembershipService,
+  decodeUnlockError,
+} from '@/lib/membership';
 
 export default function Home() {
   const { login, logout, authenticated, ready } = usePrivy();
@@ -17,12 +30,6 @@ export default function Home() {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const SIGNER_URL = process.env.NEXT_PUBLIC_SIGNER_URL as string;
-  const UNLOCK_ADDRESS = process.env.NEXT_PUBLIC_UNLOCK_ADDRESS as string;
-  const LOCK_ADDRESS = process.env.NEXT_PUBLIC_LOCK_ADDRESS as string;
-  const BASE_NETWORK_ID = Number(process.env.NEXT_PUBLIC_BASE_NETWORK_ID);
-  const BASE_RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL as string;
-  const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as string;
 
   const unlockConfig = useMemo(
     () => ({
@@ -39,44 +46,16 @@ export default function Home() {
   );
 
 
-  const UNLOCK_ERRORS: Record<string, string> = {
-    '0x17ed8646': 'Membership sold out or max keys reached.',
-    '0x31af6951': 'Lock sold out.',
-    '0x1f04ddc8': 'Not enough funds.',
-  };
-
-  const decodeUnlockError = (data: string) => {
-    const code = data.slice(0, 10).toLowerCase();
-    return UNLOCK_ERRORS[code] || data;
-  };
-
-
-  // Check if connected wallet has membership
-  const checkMembership = async () => {
+  const refreshMembership = async () => {
     if (!ready || !authenticated || wallets.length === 0) return;
     setLoadingMembership(true);
     try {
-const provider = new JsonRpcProvider(BASE_RPC_URL, BASE_NETWORK_ID);
-      const lockContract = new Contract(
-        LOCK_ADDRESS,
-        [
-          'function totalKeys(address) view returns (uint256)',
-          'function getHasValidKey(address) view returns (bool)'
-        ],
-        provider
+      const status = await fetchMembership(
+        wallets,
+        BASE_RPC_URL,
+        BASE_NETWORK_ID,
+        LOCK_ADDRESS
       );
-      let status: 'active' | 'expired' | 'none' = 'none';
-      for (const w of wallets) {
-        if (w.address) {
-
-          const total = await lockContract.totalKeys(w.address);
-          if (total.toString() !== '0') {
-            const valid = await lockContract.getHasValidKey(w.address);
-            status = valid ? 'active' : 'expired';
-            break;
-          }
-        }
-      }
       setMembershipStatus(status);
       setHasMembership(status === 'active');
     } catch (error) {
@@ -87,7 +66,7 @@ const provider = new JsonRpcProvider(BASE_RPC_URL, BASE_NETWORK_ID);
   };
 
   useEffect(() => {
-    checkMembership();
+    refreshMembership();
   }, [ready, authenticated, wallets]);
 
   const connectWallet = async () => {
@@ -109,70 +88,17 @@ const provider = new JsonRpcProvider(BASE_RPC_URL, BASE_NETWORK_ID);
     }
     setIsPurchasing(true);
     try {
-      // Ensure wallet is on Base network
-      const eip1193 = await w.getEthereumProvider();
-      try {
-        await eip1193.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x2105' }] });
-      } catch (switchError: any) {
-        if (switchError.code === 4902) {
-          // Add Base chain if missing
-          await eip1193.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: '0x2105',
-              chainName: 'Base',
-              rpcUrls: ['https://mainnet.base.org'],
-              nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-              blockExplorerUrls: ['https://basescan.org'],
-            }],
-          });
-        } else {
-          throw switchError;
-        }
-      }
-
-      // Setup browser provider and signer
-const browserProvider = new BrowserProvider(eip1193, BASE_NETWORK_ID);
-      const signer = await browserProvider.getSigner();
-
-      // Connect Unlock.js service
-      console.log('Connecting Unlock service...');
-      await walletService.connect(browserProvider as unknown as JsonRpcProvider);
-
-      // Approve USDC spend if needed
-      const usdc = new Contract(
-        USDC_ADDRESS,
-        [
-          'function allowance(address owner, address spender) view returns (uint256)',
-          'function approve(address spender, uint256 amount) returns (bool)',
-        ],
-        signer
+      await purchaseMembershipService(
+        w,
+        walletService,
+        BASE_NETWORK_ID,
+        LOCK_ADDRESS,
+        USDC_ADDRESS
       );
-      const amount = parseUnits('0.1', 6);
-      const allowance = await usdc.allowance(w.address, LOCK_ADDRESS);
-      if (allowance < amount) {
-        console.log('Approving USDC spend...');
-        const approveTx = await usdc.approve(LOCK_ADDRESS, amount);
-        await approveTx.wait();
-      }
-
-      console.log('Purchasing key for 0.1 USDC...');
-      const txHash = await walletService.purchaseKey(
-        {
-          lockAddress: LOCK_ADDRESS,
-          owner: w.address,
-          keyPrice: '0.1',
-          erc20Address: USDC_ADDRESS,
-          decimals: 6,
-        } as any
-      );
-      console.log('purchaseKey TX hash:', txHash);
-
-      await checkMembership();
+      await refreshMembership();
     } catch (error: any) {
       if (error?.data) {
         console.error('Purchase failed:', decodeUnlockError(error.data));
-
       } else {
         console.error('Purchase failed:', error);
       }
@@ -190,65 +116,14 @@ const browserProvider = new BrowserProvider(eip1193, BASE_NETWORK_ID);
     }
     setIsPurchasing(true);
     try {
-      const eip1193 = await w.getEthereumProvider();
-      try {
-        await eip1193.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2105' }],
-        });
-      } catch (switchError: any) {
-        if (switchError.code === 4902) {
-          await eip1193.request({
-            method: 'wallet_addEthereumChain',
-            params: [
-              {
-                chainId: '0x2105',
-                chainName: 'Base',
-                rpcUrls: ['https://mainnet.base.org'],
-                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-                blockExplorerUrls: ['https://basescan.org'],
-              },
-            ],
-          });
-        } else {
-          throw switchError;
-        }
-      }
-
-      const browserProvider = new BrowserProvider(eip1193, BASE_NETWORK_ID);
-      const signer = await browserProvider.getSigner();
-
-      console.log('Connecting Unlock service...');
-      await walletService.connect(browserProvider as unknown as JsonRpcProvider);
-
-      const usdc = new Contract(
-        USDC_ADDRESS,
-        [
-          'function allowance(address owner, address spender) view returns (uint256)',
-          'function approve(address spender, uint256 amount) returns (bool)',
-        ],
-        signer
+      await renewMembershipService(
+        w,
+        walletService,
+        BASE_NETWORK_ID,
+        LOCK_ADDRESS,
+        USDC_ADDRESS
       );
-      const amount = parseUnits('0.1', 6);
-      const allowance = await usdc.allowance(w.address, LOCK_ADDRESS);
-      if (allowance < amount) {
-        console.log('Approving USDC spend...');
-        const approveTx = await usdc.approve(LOCK_ADDRESS, amount);
-        await approveTx.wait();
-      }
-
-      console.log('Renewing membership for 0.1 USDC...');
-      const txHash = await walletService.extendKey({
-        lockAddress: LOCK_ADDRESS,
-        owner: w.address,
-        keyPrice: '0.1',
-        erc20Address: USDC_ADDRESS,
-        decimals: 6,
-        referrer: w.address,
-      } as any);
-      console.log('extendKey TX hash:', txHash);
-
-      await checkMembership();
+      await refreshMembership();
     } catch (error: any) {
       if (error?.data) {
         console.error('Renewal failed:', decodeUnlockError(error.data));
@@ -402,7 +277,7 @@ const browserProvider = new BrowserProvider(eip1193, BASE_NETWORK_ID);
             </button>
             <button
               className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700"
-              onClick={checkMembership}
+              onClick={refreshMembership}
             >
               Refresh Status
             </button>
