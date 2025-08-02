@@ -15,7 +15,7 @@ export function Providers({ children }: { children: ReactNode }) {
           theme: 'light',
           accentColor: '#676FFF',
           walletChainType: 'ethereum-only',
-          walletList: ['detected_ethereum_wallets'], // only external detected wallets
+          walletList: ['detected_ethereum_wallets','coinbase_wallet','metamask'], // only external detected wallets, coinbase and metamask
         },
         defaultChain: base,
         supportedChains: [base],
