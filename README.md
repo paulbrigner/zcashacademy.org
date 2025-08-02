@@ -24,6 +24,27 @@ esbuild@0.19.12
 tailwindcss@4
 typescript@5
 
+Mac commands to install dependencies:
+```bash
+brew install node
+npm install
+npm install -g tailwindcss
+npm install --save @aws-sdk/types
+npm install -g serve
+```
+
+Command to build (be sure to create .env.local first):
+```bash
+npm run build
+```
+
+Command to test locally:
+```bash
+npx serve out
+```
+Test at http://localhost:3000/community
+
+
 ## Overview
 
 - **Unlock Protocol** – manages the membership NFTs. In this example a lock on Base network costs `0.10` USDC and keys expire after 30 days ([contract](https://basescan.org/address/0xed16cd934780a48697c2fd89f1b13ad15f0b64e1)).
