@@ -17,12 +17,12 @@ export default function Home() {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isFunding, setIsFunding] = useState(false);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const SIGNER_URL = process.env.SIGNER_URL as string;
-  const UNLOCK_ADDRESS = process.env.UNLOCK_ADDRESS as string;
-  const LOCK_ADDRESS = process.env.LOCK_ADDRESS as string;
-  const BASE_NETWORK_ID = Number(process.env.BASE_NETWORK_ID);
-  const BASE_RPC_URL = process.env.BASE_RPC_URL as string;
-  const USDC_ADDRESS = process.env.USDC_ADDRESS as string;
+  const SIGNER_URL = process.env.NEXT_PUBLIC_SIGNER_URL as string;
+  const UNLOCK_ADDRESS = process.env.NEXT_PUBLIC_UNLOCK_ADDRESS as string;
+  const LOCK_ADDRESS = process.env.NEXT_PUBLIC_LOCK_ADDRESS as string;
+  const BASE_NETWORK_ID = Number(process.env.NEXT_PUBLIC_BASE_NETWORK_ID);
+  const BASE_RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL as string;
+  const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS as string;
 
   const unlockConfig = useMemo(
     () => ({

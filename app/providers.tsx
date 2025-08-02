@@ -7,7 +7,7 @@ import { ReactNode } from 'react';
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
+      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!} //Next.js only exposes environment variables prefixed with NEXT_PUBLIC_ to client-side code. 
       config={{
         loginMethods: ['wallet'],
         appearance: {
