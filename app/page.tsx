@@ -4,22 +4,40 @@
 
 import { usePrivy, useWallets, useFundWallet } from '@privy-io/react-auth'; // Hooks for authentication and wallet interaction
 import { useState, useEffect, useMemo } from 'react'; // React helpers for state and lifecycle
-import { WalletService } from '@unlock-protocol/unlock-js'; // Unlock Protocol helper
 import { base } from 'viem/chains'; // Base chain definition
+import { Paywall } from '@unlock-protocol/paywall';
+import { networks } from '@unlock-protocol/networks';
 import {
   SIGNER_URL,
-  UNLOCK_ADDRESS,
   LOCK_ADDRESS,
   BASE_NETWORK_ID,
   BASE_RPC_URL,
-  USDC_ADDRESS,
 } from '@/lib/config'; // Environment-specific constants
-import {
-  checkMembership as fetchMembership,
-  purchaseMembership as purchaseMembershipService,
-  renewMembership as renewMembershipService,
-  decodeUnlockError,
-} from '@/lib/membership'; // Helper functions for membership logic
+import { checkMembership as fetchMembership } from '@/lib/membership'; // Helper function for membership logic
+
+const PAYWALL_CONFIG = {
+  icon: '',
+  locks: {
+    '0xed16cd934780a48697c2fd89f1b13ad15f0b64e1': {
+      name: 'PGP Community Membership',
+      order: 1,
+      network: 8453,
+      recipient: '',
+      dataBuilder: '',
+      emailRequired: true,
+      maxRecipients: null,
+    },
+  },
+  title: 'Join the PGP* for Crypto Community',
+  referrer: '0x76ff49cc68710a0dF27724D46698835D7c7AF2f2',
+  skipSelect: false,
+  hideSoldOut: false,
+  pessimistic: false,
+  redirectUri: 'https://www.pgpforcrypto.org/community',
+  skipRecipient: false,
+  endingCallToAction: 'Join Now!',
+  persistentCheckout: false,
+};
 
 export default function Home() {
   // Functions from Privy to log the user in/out and check auth state
@@ -29,10 +47,9 @@ export default function Home() {
   // Utility to fund a user's wallet with testnet tokens
   const { fundWallet } = useFundWallet();
 
-  // Track whether the user currently has an active membership
-  const [hasMembership, setHasMembership] = useState(false);
   // Detailed membership state: 'active', 'expired', or 'none'
-  const [membershipStatus, setMembershipStatus] = useState<'active' | 'expired' | 'none'>('none');
+  const [membershipStatus, setMembershipStatus] =
+    useState<'active' | 'expired' | 'none'>('none');
   // Indicates whether we are currently checking membership status
   const [loadingMembership, setLoadingMembership] = useState(false);
   // Flags to show when purchase/renewal or funding actions are running
@@ -41,21 +58,16 @@ export default function Home() {
   // Holds the signed URL to gated content once retrieved
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
-  // Configuration for the Unlock Protocol on the Base network
-  const unlockConfig = useMemo(
-    () => ({
+  // Paywall instance configured for the Base network
+  const paywall = useMemo(() => {
+    return new Paywall({
+      ...networks,
       [BASE_NETWORK_ID]: {
+        ...networks[BASE_NETWORK_ID],
         provider: BASE_RPC_URL,
-        unlockAddress: UNLOCK_ADDRESS,
       },
-    }),
-    []
-  );
-  // Service object from Unlock used to interact with the lock contract
-  const walletService = useMemo(
-    () => new WalletService(unlockConfig),
-    [unlockConfig]
-  );
+    });
+  }, [BASE_NETWORK_ID, BASE_RPC_URL]);
 
   // Check on-chain whether the connected wallet has a valid membership
   const refreshMembership = async () => {
@@ -69,7 +81,6 @@ export default function Home() {
         LOCK_ADDRESS
       );
       setMembershipStatus(status);
-      setHasMembership(status === 'active');
     } catch (error) {
       console.error('Membership check failed:', error);
     } finally {
@@ -93,7 +104,7 @@ export default function Home() {
     }
   };
 
-  // Purchase a new membership using USDC
+  // Open the Unlock Protocol checkout using the existing provider
   const purchaseMembership = async () => {
     const w = wallets[0];
     if (!w?.address) {
@@ -102,48 +113,12 @@ export default function Home() {
     }
     setIsPurchasing(true);
     try {
-      await purchaseMembershipService(
-        w,
-        walletService,
-        BASE_NETWORK_ID,
-        LOCK_ADDRESS,
-        USDC_ADDRESS
-      );
+      const provider = await w.getEthereumProvider();
+      await paywall.connect(provider);
+      await paywall.loadCheckoutModal(PAYWALL_CONFIG);
       await refreshMembership();
-    } catch (error: any) {
-      if (error?.data) {
-        console.error('Purchase failed:', decodeUnlockError(error.data));
-      } else {
-        console.error('Purchase failed:', error);
-      }
-    } finally {
-      setIsPurchasing(false);
-    }
-  };
-
-  // Renew a membership that has expired
-  const renewMembership = async () => {
-    const w = wallets[0];
-    if (!w?.address) {
-      console.error('No wallet connected.');
-      return;
-    }
-    setIsPurchasing(true);
-    try {
-      await renewMembershipService(
-        w,
-        walletService,
-        BASE_NETWORK_ID,
-        LOCK_ADDRESS,
-        USDC_ADDRESS
-      );
-      await refreshMembership();
-    } catch (error: any) {
-      if (error?.data) {
-        console.error('Renewal failed:', decodeUnlockError(error.data));
-      } else {
-        console.error('Renewal failed:', error);
-      }
+    } catch (error) {
+      console.error('Purchase failed:', error);
     } finally {
       setIsPurchasing(false);
     }
@@ -282,11 +257,7 @@ export default function Home() {
             </button>
             <button
               className="px-4 py-2 border rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
-              onClick={
-                membershipStatus === 'expired'
-                  ? renewMembership
-                  : purchaseMembership
-              }
+              onClick={purchaseMembership}
               disabled={isPurchasing}
             >
               {isPurchasing
