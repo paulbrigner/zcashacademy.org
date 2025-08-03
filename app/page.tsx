@@ -2,7 +2,7 @@
 // so it needs to run on the client side rather than on the server.
 'use client';
 
-import { usePrivy, useWallets, useFundWallet } from '@privy-io/react-auth'; // Hooks for authentication and wallet interaction
+import { usePrivy, useWallets } from '@privy-io/react-auth'; // Hooks for authentication and wallet interaction
 import { useState, useEffect, useMemo } from 'react'; // React helpers for state and lifecycle
 import { base } from 'viem/chains'; // Base chain definition
 import { Paywall } from '@unlock-protocol/paywall';
@@ -45,7 +45,7 @@ export default function Home() {
   // List of wallets connected through Privy
   const { wallets } = useWallets();
   // Utility to fund a user's wallet with testnet tokens
-  const { fundWallet } = useFundWallet();
+  // const { fundWallet } = useFundWallet();
 
   // Detailed membership state: 'active', 'expired', or 'none'
   const [membershipStatus, setMembershipStatus] =
@@ -54,7 +54,7 @@ export default function Home() {
   const [loadingMembership, setLoadingMembership] = useState(false);
   // Flags to show when purchase/renewal or funding actions are running
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [isFunding, setIsFunding] = useState(false);
+  // const [isFunding, setIsFunding] = useState(false);
   // Holds the signed URL to gated content once retrieved
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
@@ -125,21 +125,21 @@ export default function Home() {
   };
 
   // Send a small amount of native token to the user's wallet so they can pay gas fees
-  const fundUserWallet = async () => {
-    const w = wallets[0];
-    if (!w?.address) {
-      console.error('No wallet to fund.');
-      return;
-    }
-    setIsFunding(true);
-    try {
-      await fundWallet(w.address, { chain: base });
-    } catch (error) {
-      console.error('Funding failed:', error);
-    } finally {
-      setIsFunding(false);
-    }
-  };
+  // const fundUserWallet = async () => {
+  //   const w = wallets[0];
+  //   if (!w?.address) {
+  //     console.error('No wallet to fund.');
+  //     return;
+  //   }
+  //   setIsFunding(true);
+  //   try {
+  //     await fundWallet(w.address, { chain: base });
+  //   } catch (error) {
+  //     console.error('Funding failed:', error);
+  //   } finally {
+  //     setIsFunding(false);
+  //   }
+  // };
 
   // Ask the backend for a short-lived signed URL to view gated content
   const getContentUrl = async (file: string) => {
@@ -239,7 +239,7 @@ export default function Home() {
           )}
         </div>
       ) : (
-        // User does not have a membership; offer to fund or purchase/renew
+        // User does not have a membership; offer to purchase or renew
         <div className="space-y-4 text-center">
           <p>
             Hello, {wallets[0].address}!{' '}
@@ -248,13 +248,6 @@ export default function Home() {
               : 'You need a membership.'}
           </p>
           <div className="space-x-2">
-            <button
-              className="px-4 py-2 border rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-              onClick={fundUserWallet}
-              disabled={isFunding}
-            >
-              {isFunding ? 'Funding…' : 'Fund Wallet'}
-            </button>
             <button
               className="px-4 py-2 border rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
               onClick={purchaseMembership}
