@@ -1,6 +1,6 @@
 # PGP Community Demo
 
-This project demonstrates a token‑gated membership site built with [Unlock Protocol](https://unlock-protocol.com/), [Privy](https://www.privy.io/) wallet infrastructure and several AWS services. Members who hold a valid NFT from the configured Unlock lock can access private content hosted in an S3 bucket. CloudFront signed URLs and a Lambda function secure the content.
+This project demonstrates a token‑gated membership site built with [Unlock Protocol](https://unlock-protocol.com/) (via Unlock Paywall), [Privy](https://www.privy.io/) wallet infrastructure and several AWS services. Members who hold a valid NFT from the configured Unlock lock can access private content hosted in an S3 bucket. CloudFront signed URLs and a Lambda function secure the content.
 
 A demo of the deployed site is available at [https://pgpforcrypto.org/community](https://pgpforcrypto.org/community).
 
@@ -12,6 +12,8 @@ react-dom@19.1.1
 @aws-sdk/client-secrets-manager@3.421.0
 @aws-sdk/cloudfront-signer@3.421.0
 @privy-io/react-auth@2.20.0
+@unlock-protocol/networks@0.0.25
+@unlock-protocol/paywall@0.8.1
 @unlock-protocol/unlock-js@0.51.2
 ethers@6.15.0
 
@@ -47,7 +49,7 @@ Test at http://localhost:3000/community
 
 ## Overview
 
-- **Unlock Protocol** – manages the membership NFTs. In this example a lock on Base network costs `0.10` USDC and keys expire after 30 days ([contract](https://basescan.org/address/0xed16cd934780a48697c2fd89f1b13ad15f0b64e1)).
+- **Unlock Protocol & Paywall** – manages the membership NFTs and purchase flow via Unlock Paywall. In this example a lock on Base network costs `0.10` USDC and keys expire after 30 days ([contract](https://basescan.org/address/0xed16cd934780a48697c2fd89f1b13ad15f0b64e1)).
 - **Privy** – provides embedded wallet functionality and user login.
 - **AWS** – S3 stores the restricted content, CloudFront serves it via signed URLs, Secrets Manager holds the CloudFront private key, and a Lambda function generates signed URLs.
 
@@ -175,9 +177,9 @@ npm run build
 
 ## Usage
 
-Visit your deployed site and connect a wallet. If the wallet holds a valid membership NFT, the app requests a signed URL from the Lambda function and displays the restricted content in an iframe.
+Visit your deployed site and connect a wallet. Click **Get Membership** to launch the Unlock Paywall and purchase a key. The paywall handles wallet funding automatically, so there is no separate **Fund Wallet** button or manual funding step. If the wallet already holds a valid membership NFT, the app requests a signed URL from the Lambda function and displays the restricted content in an iframe.
 
-The demo lock uses USDC on Base, so users may need to fund their wallets and purchase a key to gain access.
+The demo lock uses USDC on Base, and the paywall can fund wallets as needed before completing the purchase.
 
 ---
 
