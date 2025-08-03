@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Contract, JsonRpcProvider } from 'ethers';
 import { getSignedUrl } from '@/lambda/cloudFrontSigner';
 
@@ -14,8 +14,11 @@ const ABI = [
   'function getHasValidKey(address) view returns (bool)',
 ];
 
-export async function GET(request: NextRequest, { params }: { params: { file: string } }) {
-  const address = request.nextUrl.searchParams.get('address');
+export async function GET(
+  request: Request,
+  { params }: { params: { file: string } }
+) {
+  const address = new URL(request.url).searchParams.get('address');
   const file = params.file;
 
   if (!address || !file) {
