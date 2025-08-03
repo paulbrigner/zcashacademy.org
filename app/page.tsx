@@ -8,7 +8,6 @@ import { base } from 'viem/chains'; // Base chain definition
 import { Paywall } from '@unlock-protocol/paywall';
 import { networks } from '@unlock-protocol/networks';
 import {
-  SIGNER_URL,
   LOCK_ADDRESS,
   BASE_NETWORK_ID,
   BASE_RPC_URL,
@@ -148,12 +147,8 @@ export default function Home() {
       console.error('No wallet connected.');
       return;
     }
-    if (!SIGNER_URL) {
-      console.error('Signer URL not configured');
-      return;
-    }
     try {
-      const res = await fetch(`${SIGNER_URL}?address=${w.address}&file=${file}`);
+      const res = await fetch(`/api/content/${file}?address=${w.address}`);
       if (!res.ok) {
         throw new Error('Failed to fetch signed URL');
       }
