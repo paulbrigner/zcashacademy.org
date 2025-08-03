@@ -14,9 +14,12 @@ const ABI = [
   'function getHasValidKey(address) view returns (bool)',
 ];
 
-export async function GET(request: NextRequest, { params }: { params: { file: string } }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: { file: string } }
+) {
   const address = request.nextUrl.searchParams.get('address');
-  const file = params.file;
+  const file = context.params.file;
 
   if (!address || !file) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
