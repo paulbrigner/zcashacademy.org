@@ -7,7 +7,7 @@
     "compile:lambda": "esbuild lambda/generateSignedUrl.ts --bundle --platform=node --target=node18 --format=cjs --tsconfig=tsconfig.lambda.json --outfile=lambda-build/index.js",
     "package:lambda": "cd lambda-build && zip ../generateSignedUrl.zip index.js",
     "build:lambda": "npm run compile:lambda && npm run package:lambda",
-    "build": "npm run build:lambda && next build && mv out out-temp && mkdir -p out/community && mv out-temp/* out/community/ && rm -rf out-temp && true",
+    "build": "npm run build:lambda && next build",
     "start": "next start",
     "lint": "next lint",
     "serve": "serve out -r '{\"source\": \"/community\",\"destination\": \"/community.html\"}' -r '{\"source\": \"/community/(.*)\",\"destination\": \"/$1\"}'"

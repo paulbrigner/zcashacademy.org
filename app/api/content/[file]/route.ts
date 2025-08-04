@@ -13,10 +13,14 @@ const ABI = [
   'function totalKeys(address) view returns (uint256)',
   'function getHasValidKey(address) view returns (bool)',
 ];
+export const revalidate = 0;
 
-export async function GET(request: NextRequest, { params }: { params: { file: string } }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ file: string }> }
+) {
   const address = request.nextUrl.searchParams.get('address');
-  const file = params.file;
+  const { file } = await context.params;
 
   if (!address || !file) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
