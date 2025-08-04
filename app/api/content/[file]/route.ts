@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Contract, JsonRpcProvider } from 'ethers';
 import { getSignedUrl } from '@/lambda/cloudFrontSigner';
 
@@ -15,11 +15,11 @@ const ABI = [
 ];
 
 export async function GET(
-  request: NextRequest,
-  context: { params: { file: string } }
+  request: Request,
+  { params }: { params: { file: string } }
 ) {
-  const address = request.nextUrl.searchParams.get('address');
-  const { file } = context.params;
+  const address = new URL(request.url).searchParams.get('address');
+  const { file } = params;
 
   if (!address || !file) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
